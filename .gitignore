@@ -1,0 +1,9 @@
+# root dirs
+/bin
+/deployment
+/tmp
+/vendor
+
+# root files
+/.env
+
