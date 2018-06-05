@@ -1,5 +1,7 @@
 # Chronologist 🎞
 
+[![CircleCI](https://circleci.com/gh/hypnoglow/chronologist.svg?style=shield)](https://circleci.com/gh/hypnoglow/chronologist)
+
 Chronologist is a Kubernetes controller that syncs your Helm chart deployments 
 with Grafana annotations.
 
