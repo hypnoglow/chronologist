@@ -1,0 +1,28 @@
+# Default values for chronologist.
+
+fullnameOverride: chronologist
+
+replicaCount: 1
+
+image:
+  repository: hypnoglow/chronologist
+  tag: latest
+  pullPolicy: IfNotPresent
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 192Mi
+  limits:
+    cpu: 100m
+    memory: 256Mi
+
+config:
+  GRAFANA_ADDR: http://grafana.example.com
+  GRAFANA_API_KEY: ABCDEF1234567890
+  RELEASE_REVISION_MAX_AGE: 24h
+  LOG_FORMAT: json
+  LOG_LEVEL: info
+
+rbac:
+  enabled: true

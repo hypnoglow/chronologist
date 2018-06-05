@@ -140,7 +140,7 @@ func (c *Controller) syncConfigMap(key string) error {
 	startTime := time.Now()
 	log.Sugar().Infof("Started syncing ConfigMap at %v", startTime.Format(time.RFC3339Nano))
 	defer func() {
-		log.Sugar().Infof("Finished syncing ConfigMap at %v", time.Since(startTime))
+		log.Sugar().Infof("Finished syncing ConfigMap in %v", time.Since(startTime))
 	}()
 
 	// config maps are always named after release revision.

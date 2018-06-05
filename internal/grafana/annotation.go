@@ -111,6 +111,7 @@ type GetAnnotationsParams struct {
 // and revision.
 func (p *GetAnnotationsParams) ByRelease(name, revision string) {
 	p.Tags = append(p.Tags,
+		"owner=chronologist",
 		"release_name="+name,
 		"release_revision="+revision,
 	)
