@@ -1,0 +1,9 @@
+
+Chronologist has been deployed!
+
+Note that this service has no endpoints.
+
+Getting logs:
+
+    export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app={{ template "chronologist.name" . }},release={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+    kubectl logs -f --tail 20 $POD_NAME

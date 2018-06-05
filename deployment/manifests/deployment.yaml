@@ -1,0 +1,30 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: chronologist
+  labels:
+    app: chronologist
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chronologist
+  template:
+    metadata:
+      labels:
+        app: chronologist
+    spec:
+      containers:
+        - name: chronologist
+          image: hypnoglow/chronologist:latest
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: chronologist
+          resources:
+            requests:
+              cpu: 50m
+              memory: 192Mi
+            limits:
+              cpu: 100m
+              memory: 256Mi

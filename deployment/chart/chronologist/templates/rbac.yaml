@@ -1,0 +1,49 @@
+{{- if .Values.rbac.enabled -}}
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ template "chronologist.fullname" . }}
+  labels:
+    app: {{ template "chronologist.name" . }}
+    chart: {{ template "chronologist.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: {{ template "chronologist.fullname" . }}
+  labels:
+    app: {{ template "chronologist.name" . }}
+    chart: {{ template "chronologist.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+rules:
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ template "chronologist.fullname" . }}
+  labels:
+    app: {{ template "chronologist.name" . }}
+    chart: {{ template "chronologist.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ template "chronologist.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ template "chronologist.fullname" . }}
+    namespace: {{ .Release.Namespace }}
+
+{{- end -}}
