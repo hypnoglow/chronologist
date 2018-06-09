@@ -72,6 +72,9 @@ jobs:
       - image: alpine:3.7
     steps:
       - checkout
+      - add_ssh_keys:
+          fingerprints:
+            - "0d:f4:ec:bd:16:e8:33:e6:87:64:4d:c2:14:24:2b:73"
       - run:
           name: Setup
           command: |
@@ -82,22 +85,18 @@ jobs:
             helm init --client-only
             git config --global user.name "CircleCI"
             git config --global user.email "hypnoglow+chronologist@gmail.com"
+            ssh-keyscan github.com >> ~/.ssh/known_hosts
       - run:
           name: Release Helm chart
           command: |
             [ -z "${CIRCLE_TAG}" ] && exit 1
             version=${CIRCLE_TAG#v*}
             git checkout gh-pages
-            helm package ./deployment/chart/chronologist --version ${version}
+            helm package ./deployment/chart/chronologist --version ${version} --app-version ${version} -d ./charts
             helm repo index .
-      - add_ssh_keys:
-          fingerprints:
-            - "0d:f4:ec:bd:16:e8:33:e6:87:64:4d:c2:14:24:2b:73"
       - run:
           name: Push to GitHub
           command: |
-            echo "Host github.com\n  IdentityFile ~/.ssh/id_rsa_0df4ecbd16e833e687644dc214242b73" > ~/.ssh/confog
-            git remote -v
             git add .
             git commit --amend --no-edit
             git rebase --onto master HEAD~1 gh-pages
