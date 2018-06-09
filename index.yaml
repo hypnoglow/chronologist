@@ -1,0 +1,15 @@
+apiVersion: v1
+entries:
+  chronologist:
+  - apiVersion: v1
+    appVersion: 0.0.0
+    created: 2018-06-09T17:41:43.479067959+03:00
+    description: |
+      Chronologist is a Kubernetes controller that syncs Helm chart deployments with
+      Grafana annotations.
+    digest: 64c4deb95fa9663a7e5e328646ea4f82b31a5f9fbf1930cf67ad0a38859caf03
+    name: chronologist
+    urls:
+    - charts/chronologist-0.0.0.tgz
+    version: 0.0.0
+generated: 2018-06-09T17:41:43.477804144+03:00
