@@ -37,7 +37,7 @@ jobs:
       - setup_remote_docker:
           docker_layer_caching: true
       - run: docker image build -t hypnoglow/chronologist:latest .
-  publish-latest:
+  publish-image-latest:
     docker:
       - image: circleci/golang:1.10
     working_directory: /go/src/github.com/hypnoglow/chronologist
@@ -51,7 +51,57 @@ jobs:
             docker login -u $DOCKER_USER -p $DOCKER_PASS
             docker image build -t hypnoglow/chronologist:latest --build-arg VCS_REF=$CIRCLE_SHA1 .
             docker image push hypnoglow/chronologist:latest
-
+  publish-image-tag:
+    docker:
+      - image: circleci/golang:1.10
+    working_directory: /go/src/github.com/hypnoglow/chronologist
+    steps:
+      - attach_workspace:
+          at: /go/src/github.com/hypnoglow
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          command: |
+            [ -z "${CIRCLE_TAG}" ] && exit 1
+            tag=${CIRCLE_TAG#v*}
+            docker login -u $DOCKER_USER -p $DOCKER_PASS
+            docker image build -t hypnoglow/chronologist:${tag} --build-arg VCS_REF=$CIRCLE_SHA1 .
+            docker image push hypnoglow/chronologist:${tag}
+  publish-chart-tag:
+    docker:
+      - image: alpine:3.7
+    steps:
+      - checkout
+      - run:
+          name: Setup
+          command: |
+            apk add -q --no-cache git curl openssh
+            curl -sSL https://storage.googleapis.com/kubernetes-helm/helm-v2.8.2-linux-amd64.tar.gz | tar xz
+            mv linux-amd64/helm /usr/local/bin/helm
+            rm -rf linux-amd64
+            helm init --client-only
+            git config --global user.name "CircleCI"
+            git config --global user.email "hypnoglow+chronologist@gmail.com"
+      - run:
+          name: Release Helm chart
+          command: |
+            [ -z "${CIRCLE_TAG}" ] && exit 1
+            version=${CIRCLE_TAG#v*}
+            git checkout gh-pages
+            helm package ./deployment/chart/chronologist --version ${version}
+            helm repo index .
+      - add_ssh_keys:
+          fingerprints:
+            - "0d:f4:ec:bd:16:e8:33:e6:87:64:4d:c2:14:24:2b:73"
+      - run:
+          name: Push to GitHub
+          command: |
+            echo "Host github.com\n  IdentityFile ~/.ssh/id_rsa_0df4ecbd16e833e687644dc214242b73" > ~/.ssh/confog
+            git remote -v
+            git add .
+            git commit --amend --no-edit
+            git rebase --onto master HEAD~1 gh-pages
+            git push origin gh-pages --force-with-lease
 workflows:
   version: 2
   common-pipeline:
@@ -66,10 +116,34 @@ workflows:
           filters:
             branches:
               ignore: master
-      - publish-latest:
+      - publish-image-latest:
           requires:
             - test-build
             - test-unit
           filters:
             branches:
               only: master
+  release-pipeline:
+    jobs:
+      - dep:
+          filters:
+            tags:
+              only: /.*/
+            branches:
+              ignore: /.*/
+      - publish-image-tag:
+          requires:
+            - dep
+          filters:
+            tags:
+              only: /.*/
+            branches:
+              ignore: /.*/
+      - publish-chart-tag:
+          requires:
+            - publish-image-tag
+          filters:
+            tags:
+              only: /.*/
+            branches:
+              ignore: /.*/
