@@ -6,9 +6,15 @@ replicaCount: 1
 
 image:
   repository: hypnoglow/chronologist
-  tag: latest
+  # When image.tag is empty or not set, it defaults to {{ .Chart.AppVersion }}.
+  # You can override this with any available tag, for example:
+  # tag: 0.1.1
+  tag: ""
   pullPolicy: IfNotPresent
 
+# You probably need to adjust these resources up or down to fit your needs,
+# depending on the number of existing release revisions and new release
+# revisions per day.
 resources:
   requests:
     cpu: 50m
@@ -17,12 +23,28 @@ resources:
     cpu: 100m
     memory: 256Mi
 
+# config defines configmap values.
+# Basically, this represents application configuration. Everything from here
+# goes to environment for the application container.
 config:
   GRAFANA_ADDR: http://grafana.example.com
-  GRAFANA_API_KEY: ABCDEF1234567890
   RELEASE_REVISION_MAX_AGE: 24h
   LOG_FORMAT: json
   LOG_LEVEL: info
+
+# secrets define secret values.
+# This also represents application configuration, but for more sensitive
+# data. Everything from here goes to environment for the application container.
+secrets: {}
+  # Example:
+  # GRAFANA_API_KEY: ABCDEF1234567890
+
+# secretRefs define external secret resources (not included in the chart) that
+# can be referenced and injected as environment variables to the application container.
+# This is an array of secret names.
+secretRefs: []
+  # Example:
+  # - chronologist-grafana-credentials
 
 rbac:
   enabled: true
