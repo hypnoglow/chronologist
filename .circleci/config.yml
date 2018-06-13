@@ -92,14 +92,11 @@ jobs:
             [ -z "${CIRCLE_TAG}" ] && exit 1
             version=${CIRCLE_TAG#v*}
             git checkout gh-pages
+            git rebase --onto master HEAD~1 gh-pages
             helm package ./deployment/chart/chronologist --version ${version} --app-version ${version} -d ./charts
             helm repo index .
-      - run:
-          name: Push to GitHub
-          command: |
             git add .
             git commit --amend --no-edit
-            git rebase --onto master HEAD~1 gh-pages
             git push origin gh-pages --force-with-lease
 workflows:
   version: 2
