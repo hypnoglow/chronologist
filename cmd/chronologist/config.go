@@ -43,9 +43,8 @@ type Config struct {
 // ConfigFromEnvironment returns specification loaded from environment
 // variables.
 func ConfigFromEnvironment() (Config, error) {
-	if err := godotenv.Overload(); err != nil {
-		// we do not care if there is no .env file.
-	}
+	// we do not care if there is no .env file.
+	_ = godotenv.Overload()
 
 	var s Config
 	err := envconfig.Process("", &s)
