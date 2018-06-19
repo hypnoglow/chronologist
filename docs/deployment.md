@@ -3,8 +3,15 @@
 The easiest way to install Chronologist into your Kubernetes cluster is to use
 Helm chart. The Helm chart repo is served from this same GitHub repo using [GitHub Pages](https://github.com/hypnoglow/chronologist/tree/gh-pages).
 
+*Replace values below with your actual Grafana address and API key*
+
     helm repo add chronologist https://hypnoglow.github.io/chronologist
-    helm install chronologist/chronologist
+    helm install chronologist/chronologist \
+        --set config.GRAFANA_ADDR=http://grafana.example.com \
+        --set secrets.GRAFANA_API_KEY=ABCDEF1234567890
+
+See [values.yaml](../deployment/chart/chronologist/values.yaml) for the full list
+of possible options.
 
 ## Alternatives
 

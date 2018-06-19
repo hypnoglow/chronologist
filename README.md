@@ -10,7 +10,7 @@ with Grafana annotations.
 Key features:
 
 - For each Helm release you install/upgrade creates related Grafana annotation
-- Determines if it was a rollout or rollback and tags annotation appropriately
+- Annotations are tagged with related info such as release name, release namespace, etc
 - When you purge delete a release, deletes corresponding annotation
 
 ## Deployment
@@ -18,8 +18,15 @@ Key features:
 The easiest way to install Chronologist into your Kubernetes cluster is to use
 Helm chart.
 
+*Replace values below with your actual Grafana address and API key*
+
     helm repo add chronologist https://hypnoglow.github.io/chronologist
-    helm install chronologist/chronologist
+    helm install chronologist/chronologist \
+        --set config.GRAFANA_ADDR=http://grafana.example.com \
+        --set secrets.GRAFANA_API_KEY=ABCDEF1234567890
+
+See [values.yaml](../deployment/chart/chronologist/values.yaml) for the full list
+of possible options.
 
 ## Contributing
 
