@@ -297,7 +297,7 @@ func (c *Controller) deleteConfigMap(obj interface{}) {
 		utilruntime.HandleError(fmt.Errorf("failed to get object from tombstone %#v", obj))
 		return
 	}
-	cm, ok = tombstone.Obj.(*core_v1.ConfigMap)
+	_, ok = tombstone.Obj.(*core_v1.ConfigMap)
 	if !ok {
 		utilruntime.HandleError(fmt.Errorf("tombstone contained object that is not a ConfigMap %#v", obj))
 		return
