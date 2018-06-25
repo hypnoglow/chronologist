@@ -2,8 +2,41 @@ apiVersion: v1
 entries:
   chronologist:
   - apiVersion: v1
+    appVersion: 0.2.0
+    created: 2018-08-13T14:22:30.886857575Z
+    description: |
+      Chronologist is a Kubernetes controller that syncs Helm chart deployments with
+      Grafana annotations.
+    digest: 8a33b1e1774e9dbd096e720fed85a8bc56885dcf66093159e8193b48c003d062
+    name: chronologist
+    urls:
+    - charts/chronologist-0.2.0.tgz
+    version: 0.2.0
+  - apiVersion: v1
+    appVersion: 0.1.1
+    created: 2018-08-13T14:22:30.886471219Z
+    description: |
+      Chronologist is a Kubernetes controller that syncs Helm chart deployments with
+      Grafana annotations.
+    digest: a739e5ff07214f752d71e43504af352c01e1b46b59ebea6d2acb401a68213201
+    name: chronologist
+    urls:
+    - charts/chronologist-0.1.1.tgz
+    version: 0.1.1
+  - apiVersion: v1
+    appVersion: 0.1.0
+    created: 2018-08-13T14:22:30.886104726Z
+    description: |
+      Chronologist is a Kubernetes controller that syncs Helm chart deployments with
+      Grafana annotations.
+    digest: 81f5338a2a5a9ee721f8ff7ac05207b93e1f4b98d85a4f9796269e7e1a6bed37
+    name: chronologist
+    urls:
+    - charts/chronologist-0.1.0.tgz
+    version: 0.1.0
+  - apiVersion: v1
     appVersion: 0.0.0
-    created: 2018-06-09T17:41:43.479067959+03:00
+    created: 2018-08-13T14:22:30.885769419Z
     description: |
       Chronologist is a Kubernetes controller that syncs Helm chart deployments with
       Grafana annotations.
@@ -12,4 +45,4 @@ entries:
     urls:
     - charts/chronologist-0.0.0.tgz
     version: 0.0.0
-generated: 2018-06-09T17:41:43.477804144+03:00
+generated: 2018-08-13T14:22:30.885204755Z
