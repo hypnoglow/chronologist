@@ -14,12 +14,17 @@ spec:
       labels:
         app: chronologist
     spec:
+      serviceAccountName: chronologist
+      securityContext:
+        runAsNonRoot: true
       containers:
         - name: chronologist
           image: hypnoglow/chronologist:latest
           imagePullPolicy: Always
           envFrom:
             - configMapRef:
+                name: chronologist
+            - secretRef:
                 name: chronologist
           resources:
             requests:

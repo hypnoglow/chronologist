@@ -6,13 +6,10 @@
 
 Create namespace:
 
-    kubectl create ns chronologist-dev
+    export NAMESPACE="chronologist-dev"
+    kubectl create ns ${NAMESPACE}
 
 #### Run Grafana
-
-Add this line to `/etc/hosts` if you want to access an ingress in minikube:
-
-    192.168.99.100 grafana.chronologist.minikube.local
 
 Deploy Grafana `v4.6.3`:
 
@@ -21,17 +18,19 @@ Deploy Grafana `v4.6.3`:
     
     helm install stable/grafana --version 0.8.4 \
         --wait --debug \
-        --name grafana-chronologist \
-        --namespace chronologist-dev \
-        --set server.persistentVolume.enabled=false \
-        --set server.ingress.enabled=true \
-        --set server.ingress.hosts.0=grafana.chronologist.minikube.local
-    
-    export GRAFANA_ADDR="http://grafana.chronologist.minikube.local"
+        --name grafana \
+        --namespace ${NAMESPACE} \
+        --set server.persistentVolume.enabled=false
 
-Get password for user `admin`:
+Enable port-forwarding for Grafana pod:
 
-    export GRAFANA_PASSWORD=$(kubectl get secret --namespace chronologist-dev grafana-chronologist -o jsonpath="{.data.grafana-admin-password}" | base64 --decode ; echo)
+     export POD_NAME=$(kubectl get pods --namespace ${NAMESPACE} -l "app=grafana-grafana,component=grafana" -o jsonpath="{.items[0].metadata.name}")
+     kubectl --namespace ${NAMESPACE} port-forward $POD_NAME 3000
+
+Export Grafana variables, getting password for user `admin`:
+
+    export GRAFANA_ADDR="http://localhost:3000"
+    export GRAFANA_PASSWORD=$(kubectl get secret --namespace ${NAMESPACE} grafana -o jsonpath="{.data.grafana-admin-password}" | base64 --decode ; echo)
 
 Create API key:
 
@@ -41,12 +40,12 @@ Create API key:
         -d '{"name": "chronologist", "role": "Editor"}' \
         | jq -r ".key")
 
-Put `GRAFANA_ADDR` and `GRAFANA_API_KEY` in your `.env` file
-to make Chronologist use that grafana when running locally:
+Put `CHRONOLOGIST_GRAFANA_ADDR` and `CHRONOLOGIST_GRAFANA_API_KEY` in your `.env` file
+to make Chronologist use that Grafana when running locally:
 
     cat<<EOF > .env
-    GRAFANA_ADDR=$GRAFANA_ADDR
-    GRAFANA_API_KEY=$GRAFANA_API_KEY
+    CHRONOLOGIST_GRAFANA_ADDR=$GRAFANA_ADDR
+    CHRONOLOGIST_GRAFANA_API_KEY=$GRAFANA_API_KEY
     EOF
 
 #### Run Chronologist locally
@@ -80,3 +79,32 @@ Check that annotation does not exist anymore:
     
     curl -sS -XGET "${GRAFANA_ADDR}/api/annotations" \
         -H "Authorization: Bearer ${GRAFANA_API_KEY}"
+
+#### Run Chronologist in Minikube
+
+Now you can shutdown you local Chronologist and deploy it to Minikube.
+
+Build Docker image:
+
+    docker image build -t hypnoglow/chronologist:dirty .
+
+Push image to Minikube:
+
+    docker save hypnoglow/chronologist:dirty | (eval $(minikube docker-env) && docker load)
+
+Deploy Chronologist:
+
+    helm upgrade chronologist ./deployment/chart/chronologist \
+        --install --namespace ${NAMESPACE} --wait --debug \
+        --set image.tag="dirty" \
+        --set grafana.addr="http://grafana" \
+        --set grafana.apiKey=${GRAFANA_API_KEY}
+
+Chronologist is ready!
+
+Refer to "Make it work!" section above to deploy some release again for
+testing purposes.
+
+#### Cleanup
+
+    helm delete --purge chronologist grafana

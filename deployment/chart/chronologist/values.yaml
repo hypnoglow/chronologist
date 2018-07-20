@@ -1,7 +1,5 @@
 # Default values for chronologist.
 
-fullnameOverride: chronologist
-
 replicaCount: 1
 
 image:
@@ -23,21 +21,15 @@ resources:
     cpu: 100m
     memory: 256Mi
 
-# config defines configmap values.
-# Basically, this represents application configuration. Everything from here
-# goes to environment for the application container.
-config:
-  GRAFANA_ADDR: http://grafana.example.com
-  RELEASE_REVISION_MAX_AGE: 24h
-  LOG_FORMAT: json
-  LOG_LEVEL: info
+grafana:
+  addr: http://grafana.example.com
+  apiKey: "" # put correct grafana api key here.
 
-# secrets define secret values.
-# This also represents application configuration, but for more sensitive
-# data. Everything from here goes to environment for the application container.
-secrets: {}
-  # Example:
-  # GRAFANA_API_KEY: ABCDEF1234567890
+# config section defines general chronologist configuration settings.
+config:
+  logFormat: json
+  logLevel: info
+  releaseRevisionMaxAge: 24h
 
 # secretRefs define external secret resources (not included in the chart) that
 # can be referenced and injected as environment variables to the application container.

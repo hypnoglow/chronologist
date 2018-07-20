@@ -9,12 +9,12 @@ RUN go build -o bin/chronologist ./cmd/chronologist
 FROM alpine:3.7
 
 RUN apk add --no-cache ca-certificates \
-    && addgroup -S chronologist \
-    && adduser -S -G chronologist chronologist
+    && addgroup -S chronologist -g 1177 \
+    && adduser -S -G chronologist chronologist -u 1177
 
 COPY --from=0 /go/src/github.com/hypnoglow/chronologist/bin/chronologist /usr/local/bin/chronologist
 
-USER chronologist
+USER 1177
 
 ENTRYPOINT ["/usr/local/bin/chronologist"]
 
