@@ -27,30 +27,36 @@ import (
 
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
-	core_v1 "k8s.io/api/core/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 
+	"github.com/hypnoglow/chronologist/internal/chronologist"
 	"github.com/hypnoglow/chronologist/internal/grafana"
-	"github.com/hypnoglow/chronologist/internal/helm"
 )
 
 const (
-	// maxRetries for an attempt to sync a specific config map with an annotation.
+	// maxRetries for an attempt to sync a specific configmap (or secret) with an annotation.
 	maxRetries = 5
 
-	// configMapResyncPeriod to resync all config maps.
-	configMapResyncPeriod = time.Minute * 10
+	// releasesResyncPeriod to resync all configmaps (or secrets).
+	releasesResyncPeriod = time.Minute * 10
+
+	// releaseLabelSelector for configmaps (or secrets) created by tiller.
+	releaseLabelSelector = "OWNER=TILLER"
 )
 
-// Controller watches config maps that helm creates for each release
+type releaseBackend string
+
+const (
+	backendConfigMaps releaseBackend = "configmaps"
+	backendSecrets    releaseBackend = "secrets"
+)
+
+// Controller watches configmaps (or secrets) that helm creates for each release
 // and creates corresponding annotations in grafana.
 type Controller struct {
 	log        *zap.Logger
@@ -61,6 +67,15 @@ type Controller struct {
 	informer cache.SharedInformer
 
 	maxAge time.Duration
+
+	backend releaseBackend
+}
+
+// Options represent controller options.
+type Options struct {
+	MaxAge          time.Duration
+	WatchConfigMaps bool
+	WatchSecrets    bool
 }
 
 // Run starts the controller.
@@ -78,6 +93,13 @@ func (c *Controller) Run(stopCh <-chan struct{}) {
 
 	c.log.Info("Starting controller")
 	defer c.log.Info("Shutting down controller")
+
+	switch c.backend {
+	case backendConfigMaps:
+		c.log.Info("Watch mode: ConfigMaps")
+	case backendSecrets:
+		c.log.Info("Watch mode: Secrets")
+	}
 
 	c.log.Debug("Run informer")
 	wg.Add(1)
@@ -113,7 +135,16 @@ func (c *Controller) processNextItem() bool {
 
 	c.log.Sugar().Debugf("Got an item from queue: %s", key.(string))
 
-	err := c.syncConfigMap(key.(string))
+	var err error
+	switch c.backend {
+	case backendConfigMaps:
+		err = c.syncConfigMap(key.(string))
+	case backendSecrets:
+		err = c.syncSecret(key.(string))
+	default:
+		utilruntime.HandleError(fmt.Errorf("release backend is not set up on the controller; this is always a programmer's error"))
+	}
+
 	if err == nil {
 		c.queue.Forget(key)
 		return true
@@ -132,60 +163,9 @@ func (c *Controller) processNextItem() bool {
 	return true
 }
 
-// syncConfigMap method contains logic that is responsible for synchronizing
-// a specific config map with a relevant annotation.
-func (c *Controller) syncConfigMap(key string) error {
-	log := c.log.With(zap.String("configmap", key))
-
-	startTime := time.Now()
-	log.Sugar().Infof("Started syncing ConfigMap at %v", startTime.Format(time.RFC3339Nano))
-	defer func() {
-		log.Sugar().Infof("Finished syncing ConfigMap in %v", time.Since(startTime))
-	}()
-
-	// config maps are always named after release revision.
-	name, revision, err := c.keyToRelease(key)
-	if err != nil {
-		return err
-	}
-
-	log = log.With(
-		zap.String("release", name),
-		zap.String("revision", revision),
-	)
-
+func (c *Controller) syncGrafanaReleaseAnnotation(ann chronologist.Annotation, name, revision string, log *zap.Logger) error {
 	q := grafana.GetAnnotationsParams{}
 	q.ByRelease(name, revision)
-
-	item, exists, err := c.informer.GetStore().GetByKey(key)
-	if err != nil {
-		return errors.Wrap(err, "get from store by key")
-	}
-	if !exists {
-		log.Sugar().Debugf("ConfigMap has been deleted, deleting grafana annotation")
-
-		aa, err := c.grafana.GetAnnotations(context.TODO(), q)
-		if err != nil {
-			return err
-		}
-
-		var errs []error
-		for _, a := range aa {
-			log.Sugar().Debugf("Delete grafana annotation id=%d", a.ID)
-			if err := c.grafana.DeleteAnnotation(context.TODO(), a.ID); err != nil {
-				errs = append(errs, err)
-			}
-		}
-
-		return utilerrors.NewAggregate(errs)
-	}
-
-	cm := item.(*core_v1.ConfigMap)
-
-	relAnn, err := helm.AnnotationFromRawRelease(cm.Data["release"])
-	if err != nil {
-		return errors.Wrap(err, "create annotation from raw helm release data")
-	}
 
 	grafanaAnns, err := c.grafana.GetAnnotations(context.TODO(), q)
 	if err != nil {
@@ -202,23 +182,23 @@ func (c *Controller) syncConfigMap(key string) error {
 		log.Debug("Release revision has no annotations, creating a new one")
 		err = c.grafana.SaveAnnotation(
 			context.TODO(),
-			grafana.AnnotationFromChronologistAnnotation(relAnn),
+			grafana.AnnotationFromChronologistAnnotation(ann),
 		)
 		return errors.Wrap(err, "create annotation in grafana")
 	}
 
 	// Here we got len(grafanaAnns) == 1, which means we need to sync changed
-	// config map with corresponding annotation if needed.
+	// configmap/secret with corresponding annotation if needed.
 
-	log.Debug("Release revision has one annotation, comparing it with ConfigMap")
+	log.Debug("Release revision has one annotation in Grafana, comparing them")
 
 	ca, err := grafanaAnns[0].ToChronologistAnnotation()
 	if err != nil {
 		return errors.Wrap(err, "unmarshal grafana annotation")
 	}
 
-	relAnn.GrafanaID = ca.GrafanaID
-	diffs := relAnn.Differences(ca)
+	ann.GrafanaID = ca.GrafanaID
+	diffs := ann.Differences(ca)
 	if len(diffs) == 0 {
 		log.Debug("Annotations are equal, sync is not required")
 		return nil
@@ -227,7 +207,7 @@ func (c *Controller) syncConfigMap(key string) error {
 	log.Sugar().Debugf("Found differences: %v. Syncing annotation in grafana", diffs)
 	err = c.grafana.SaveAnnotation(
 		context.TODO(),
-		grafana.AnnotationFromChronologistAnnotation(relAnn),
+		grafana.AnnotationFromChronologistAnnotation(ann),
 	)
 	if err != nil {
 		return errors.Wrap(err, "create annotation")
@@ -235,9 +215,31 @@ func (c *Controller) syncConfigMap(key string) error {
 	return nil
 }
 
-// keyToRelease returns release name and revision from config map name.
+func (c *Controller) deleteGrafanaReleaseAnnotation(name, revision string, log *zap.Logger) error {
+	q := grafana.GetAnnotationsParams{}
+	q.ByRelease(name, revision)
+
+	log.Sugar().Debugf("Release revision has been deleted, deleting grafana annotation")
+
+	aa, err := c.grafana.GetAnnotations(context.TODO(), q)
+	if err != nil {
+		return err
+	}
+
+	var errs []error
+	for _, a := range aa {
+		log.Sugar().Debugf("Delete grafana annotation id=%d", a.ID)
+		if err := c.grafana.DeleteAnnotation(context.TODO(), a.ID); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	return utilerrors.NewAggregate(errs)
+}
+
+// keyToRelease returns release name and revision from configmap (or secret) name.
 //
-// Config Maps in Helm are named in the way like "foo.v2", where "foo" is the
+// ConfigMaps (or Secrets) in Helm are named in the way like "foo.v2", where "foo" is the
 // name of release and "2" is release revision.
 func (c *Controller) keyToRelease(key string) (name, revision string, err error) {
 	keyParts := strings.SplitN(key, "/", 2)
@@ -252,105 +254,32 @@ func (c *Controller) keyToRelease(key string) (name, revision string, err error)
 	return releaseParts[0], strings.TrimPrefix(releaseParts[1], "v"), nil
 }
 
-func (c *Controller) addConfigMap(obj interface{}) {
-	cm := obj.(*core_v1.ConfigMap)
-
-	// We operate on configmaps that are not outdated.
-	if c.maxAge != 0 && time.Now().Add(-c.maxAge).After(cm.CreationTimestamp.Time) {
-		c.log.Sugar().Debugf("addConfigMap: ConfigMap %s/%s is too old, skip", cm.Name, cm.Namespace)
-		return
-	}
-
-	c.log.Sugar().Infof("Adding ConfigMap %s/%s", cm.Namespace, cm.Name)
-	c.enqueue(cm)
-}
-
-func (c *Controller) updateConfigMap(old, new interface{}) {
-	cm := new.(*core_v1.ConfigMap)
-
-	// We operate on configmaps that are not outdated.
-	if c.maxAge != 0 && time.Now().Add(-c.maxAge).After(cm.CreationTimestamp.Time) {
-		c.log.Sugar().Debugf("updateConfigMap: ConfigMap %s/%s is too old, skip", cm.Name, cm.Namespace)
-		return
-	}
-
-	c.log.Sugar().Infof("Updating ConfigMap %s/%s", cm.Namespace, cm.Name)
-	c.enqueue(cm)
-}
-
-func (c *Controller) deleteConfigMap(obj interface{}) {
-	cm, ok := obj.(*core_v1.ConfigMap)
-	if ok {
-		// We operate on configmaps that are not outdated.
-		if c.maxAge != 0 && time.Now().Add(-c.maxAge).After(cm.CreationTimestamp.Time) {
-			c.log.Sugar().Debugf("deleteConfigMap: ConfigMap %s/%s is too old, skip", cm.Name, cm.Namespace)
-			return
-		}
-
-		c.log.Sugar().Infof("Deleting ConfigMap %s/%s", cm.Namespace, cm.Name)
-		c.enqueue(cm)
-		return
-	}
-
-	tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
-	if !ok {
-		utilruntime.HandleError(fmt.Errorf("failed to get object from tombstone %#v", obj))
-		return
-	}
-	_, ok = tombstone.Obj.(*core_v1.ConfigMap)
-	if !ok {
-		utilruntime.HandleError(fmt.Errorf("tombstone contained object that is not a ConfigMap %#v", obj))
-		return
-	}
-}
-
-func (c *Controller) enqueue(cm *core_v1.ConfigMap) {
-	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(cm)
-	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("failed to get key for ConfigMap %s/%s: %v", cm.Namespace, cm.Name, err))
-		return
-	}
-
-	c.queue.Add(key)
-}
-
 // New returns a new controller.
-func New(log *zap.Logger, kubernetes kubernetes.Interface, grafana grafana.Annotator, maxAge time.Duration) (*Controller, error) {
+func New(log *zap.Logger, kubernetes kubernetes.Interface, grafana grafana.Annotator, opts Options) (*Controller, error) {
 	c := &Controller{
 		log:        log,
 		kubernetes: kubernetes,
 		grafana:    grafana,
-		maxAge:     maxAge,
+		maxAge:     opts.MaxAge,
 	}
 
-	// queue to work on config maps.
+	if opts.WatchConfigMaps && opts.WatchSecrets {
+		return nil, fmt.Errorf("incorrect configuration: can watch either configmaps or secrets, not both. Note that in the future Chronologist may be able to watch both")
+	}
+	if !opts.WatchConfigMaps && !opts.WatchSecrets {
+		return nil, fmt.Errorf("incorrect configuration: nothing to watch; need to watch either configmaps or secrets")
+	}
+
+	// queue to work on configmaps or secrets.
 	c.queue = workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
 
-	// informer watches for config maps with label OWNER=TILLER
-	// and invokes handlers that add those config maps to the queue.
-	c.informer = cache.NewSharedInformer(
-		// TODO: It would be great if we could filter outdated configmaps here, and not
-		// in handler funcs. But this seems impossible currently.
-		&cache.ListWatch{
-			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
-				options.LabelSelector = "OWNER=TILLER"
-				return kubernetes.CoreV1().ConfigMaps(meta_v1.NamespaceAll).List(options)
-			},
-			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
-				options.LabelSelector = "OWNER=TILLER"
-				return kubernetes.CoreV1().ConfigMaps(meta_v1.NamespaceAll).Watch(options)
-			},
-		},
-		&core_v1.ConfigMap{},
-		configMapResyncPeriod,
-	)
-	c.informer.AddEventHandler(
-		cache.ResourceEventHandlerFuncs{
-			AddFunc:    c.addConfigMap,
-			UpdateFunc: c.updateConfigMap,
-			DeleteFunc: c.deleteConfigMap,
-		},
-	)
+	if opts.WatchConfigMaps {
+		c.backend = backendConfigMaps
+		c.setupConfigmapsInformer(kubernetes)
+	} else {
+		c.backend = backendSecrets
+		c.setupSecretsInformer(kubernetes)
+	}
 
 	// Hacky stuff.
 	utilruntime.ErrorHandlers[0] = func(err error) {

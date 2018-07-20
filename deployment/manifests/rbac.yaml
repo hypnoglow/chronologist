@@ -14,10 +14,13 @@ metadata:
   labels:
     app: chronologist
 rules:
-- apiGroups: [""]
-  resources: ["configmaps"]
-  verbs: ["get", "list", "watch"]
-
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+# or, if you use secrets as a backend for helm releases:
+# - apiGroups: [""]
+#   resources: ["secrets"]
+#   verbs: ["get", "list", "watch"]
 ---
 
 apiVersion: rbac.authorization.k8s.io/v1beta1

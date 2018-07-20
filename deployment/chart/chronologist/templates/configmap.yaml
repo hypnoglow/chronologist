@@ -12,3 +12,5 @@ data:
   CHRONOLOGIST_LOG_FORMAT: {{ .Values.config.logFormat | quote }}
   CHRONOLOGIST_LOG_LEVEL: {{ .Values.config.logLevel | quote }}
   CHRONOLOGIST_RELEASE_REVISION_MAX_AGE: {{ .Values.config.releaseRevisionMaxAge | quote }}
+  CHRONOLOGIST_WATCH_CONFIGMAPS: {{ .Values.config.watchConfigMaps | quote }}
+  CHRONOLOGIST_WATCH_SECRETS: {{ .Values.config.watchSecrets | quote }}

@@ -27,6 +27,19 @@ grafana:
 
 # config section defines general chronologist configuration settings.
 config:
+  # watchConfigMaps is used when helm is configured to store releases in
+  # configmaps. This defaults to true because helm uses configmaps as a backend
+  # for releases in default installation. Set this to false if you deploy helm
+  # tiller with --storage=secret.
+  # For more info, see: https://docs.helm.sh/using_helm/#storage-backends
+  watchConfigMaps: true
+
+  # watchSecrets is used when helm is configured to store releases in secrets.
+  # This defaults to false because helm uses configmaps to store releases in default
+  # installation. Set this to true if you deploy helm tiller with --storage=secret.
+  # For more info, see: https://docs.helm.sh/using_helm/#storage-backends
+  watchSecrets: false
+
   logFormat: json
   logLevel: info
   releaseRevisionMaxAge: 24h

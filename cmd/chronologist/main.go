@@ -46,7 +46,11 @@ func main() {
 
 	grafanaClient := grafana.NewClient(conf.GrafanaAddr, conf.GrafanaAPIKey)
 
-	c, err := controller.New(log, kubeClient, grafanaClient, conf.ReleaseRevisionMaxAge)
+	c, err := controller.New(log, kubeClient, grafanaClient, controller.Options{
+		MaxAge:          conf.ReleaseRevisionMaxAge,
+		WatchConfigMaps: conf.WatchConfigMaps,
+		WatchSecrets:    conf.WatchSecrets,
+	})
 	if err != nil {
 		panic("failed to create controller: " + err.Error())
 	}
