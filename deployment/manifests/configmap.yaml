@@ -5,8 +5,7 @@ metadata:
   labels:
     app: chronologist
 data:
-  GRAFANA_ADDR: http://grafana.example.com
-  GRAFANA_API_KEY: ABCDEF1234567890
-  RELEASE_REVISION_MAX_AGE: 24h
-  LOG_FORMAT: json
-  LOG_LEVEL: info
+  CHRONOLOGIST_GRAFANA_ADDR: http://grafana.example.com
+  CHRONOLOGIST_RELEASE_REVISION_MAX_AGE: 24h
+  CHRONOLOGIST_LOG_FORMAT: json
+  CHRONOLOGIST_LOG_LEVEL: info

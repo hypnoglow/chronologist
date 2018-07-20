@@ -26,6 +26,8 @@ import (
 	"github.com/hypnoglow/chronologist/internal/zaplog"
 )
 
+const prefix = "chronologist"
+
 // Config represents application configuration.
 type Config struct {
 	// KubeConfigPath is an absolute path to the kubeconfig file.
@@ -47,7 +49,7 @@ func ConfigFromEnvironment() (Config, error) {
 	_ = godotenv.Overload()
 
 	var s Config
-	err := envconfig.Process("", &s)
+	err := envconfig.Process(prefix, &s)
 	if err != nil {
 		return s, err
 	}

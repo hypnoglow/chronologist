@@ -7,8 +7,8 @@ Helm chart. The Helm chart repo is served from this same GitHub repo using [GitH
 
     helm repo add chronologist https://hypnoglow.github.io/chronologist
     helm install chronologist/chronologist \
-        --set config.GRAFANA_ADDR=http://grafana.example.com \
-        --set secrets.GRAFANA_API_KEY=ABCDEF1234567890
+        --set grafana.addr=http://grafana.example.com \
+        --set grafana.apiKey=ABCDEF1234567890
 
 See [values.yaml](../deployment/chart/chronologist/values.yaml) for the full list
 of possible options.

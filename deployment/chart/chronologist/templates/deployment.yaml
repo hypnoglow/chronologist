@@ -24,6 +24,8 @@ spec:
       {{- if .Values.rbac.enabled }}
       serviceAccountName: {{ template "chronologist.fullname" . }}
       {{- end }}
+      securityContext:
+        runAsNonRoot: true
       containers:
         - name: {{ .Chart.Name }}
           {{- if .Values.image.tag }}
@@ -35,6 +37,9 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ template "chronologist.fullname" . }}
+            - secretRef:
+                name: {{ template "chronologist.fullname" . }}
+                optional: true
             {{- /*
             Secret env variables can be defined via ".Values.secretRefs" that
             represent references to secrets that do not belong to the release.
@@ -42,14 +47,6 @@ spec:
             {{- range $secretRef := .Values.secretRefs }}
             - secretRef:
                 name: {{ $secretRef }}
-            {{- end }}
-            {{- /*
-            Secret env variables can be defined via ".Values.secrets" values
-            that are passed to the secret that belongs to the release.
-            */}}
-            {{- if .Values.secrets }}
-            - secretRef:
-                name: {{ template "chronologist.fullname" . }}
             {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
