@@ -76,7 +76,7 @@ func AnnotationFromChronologistAnnotation(ca chronologist.Annotation) Annotation
 		UNIXMillis: ca.Time.Unix() * 1000,
 		Tags: []string{
 			"event=release",
-			"owner=chronologist",
+			"heritage=chronologist",
 			"release_type=" + ca.ReleaseType.String(),
 			"release_status=" + ca.ReleaseStatus,
 			"release_name=" + ca.ReleaseName,
@@ -111,7 +111,7 @@ type GetAnnotationsParams struct {
 // and revision.
 func (p *GetAnnotationsParams) ByRelease(name, revision string) {
 	p.Tags = append(p.Tags,
-		"owner=chronologist",
+		"heritage=chronologist",
 		"release_name="+name,
 		"release_revision="+revision,
 	)
