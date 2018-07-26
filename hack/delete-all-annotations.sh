@@ -33,7 +33,7 @@ fi
 while true
 do
     declare -a ids
-    ids=($(curl -sS -XGET "${GRAFANA_ADDR}/api/annotations?tags=owner%3Dchronologist" \
+    ids=($(curl -sS -XGET "${GRAFANA_ADDR}/api/annotations?tags=heritage%3Dchronologist" \
         -H "Authorization: Bearer ${GRAFANA_API_KEY}" \
         | jq ".[].id"))
     [ ${#ids[@]} -eq 0 ] && break
@@ -45,4 +45,3 @@ do
         echo
     done
 done
-
