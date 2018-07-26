@@ -40,6 +40,9 @@ type Config struct {
 
 	LogFormat zaplog.Format `envconfig:"LOG_FORMAT" default:"json"`
 	LogLevel  zaplog.Level  `envconfig:"LOG_LEVEL" default:"info"`
+
+	WatchConfigMaps bool `envconfig:"WATCH_CONFIGMAPS" default:"true"`
+	WatchSecrets    bool `envconfig:"WATCH_SECRETS" default:"false"`
 }
 
 // ConfigFromEnvironment returns specification loaded from environment
