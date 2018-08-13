@@ -36,8 +36,8 @@ jobs:
           at: /go/src/github.com/hypnoglow
       - setup_remote_docker:
           docker_layer_caching: true
-      - run: docker image build -t hypnoglow/chronologist:latest .
-  publish-image-latest:
+      - run: docker image build -t hypnoglow/chronologist:dirty .
+  publish-image-master:
     docker:
       - image: circleci/golang:1.10
     working_directory: /go/src/github.com/hypnoglow/chronologist
@@ -49,8 +49,8 @@ jobs:
       - run:
           command: |
             docker login -u $DOCKER_USER -p $DOCKER_PASS
-            docker image build -t hypnoglow/chronologist:latest --build-arg VCS_REF=$CIRCLE_SHA1 .
-            docker image push hypnoglow/chronologist:latest
+            docker image build -t hypnoglow/chronologist:master --build-arg VCS_REF=$CIRCLE_SHA1 .
+            docker image push hypnoglow/chronologist:master
   publish-image-tag:
     docker:
       - image: circleci/golang:1.10
@@ -112,7 +112,7 @@ workflows:
           filters:
             branches:
               ignore: master
-      - publish-image-latest:
+      - publish-image-master:
           requires:
             - test-build
             - test-unit
