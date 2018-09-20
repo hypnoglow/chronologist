@@ -28,14 +28,14 @@ import (
 	"github.com/hypnoglow/chronologist/internal/chronologist"
 )
 
-// AnnotationFromRelease makes a chronologist annotation from helm release.
-// This function always returns the same annotation for the same release.
-func AnnotationFromRelease(rel *release.Release) (chronologist.Annotation, error) {
+// EventFromRelease assembles a chronologist release event from the helm release.
+// This function always returns the same event for the same release.
+func EventFromRelease(rel *release.Release) (chronologist.ReleaseEvent, error) {
 	// We are using LastDeployed field because it is relative only to a specific
 	// revision and not to the release itself.
 	t, err := ptypes.Timestamp(rel.Info.LastDeployed)
 	if err != nil {
-		return chronologist.Annotation{}, errors.Wrap(err, "unserialize timestamp from proto")
+		return chronologist.ReleaseEvent{}, errors.Wrap(err, "unserialize timestamp from proto")
 	}
 	t = t.Truncate(time.Second).UTC()
 
@@ -44,26 +44,25 @@ func AnnotationFromRelease(rel *release.Release) (chronologist.Annotation, error
 		rt = chronologist.ReleaseTypeRollback
 	}
 
-	return chronologist.Annotation{
-		GrafanaID:        0,
-		Time:             t,
-		ReleaseType:      rt,
-		ReleaseStatus:    rel.Info.Status.Code.String(),
-		ReleaseName:      rel.Name,
-		ReleaseRevision:  strconv.Itoa(int(rel.Version)),
-		ReleaseNamespace: rel.Namespace,
+	return chronologist.ReleaseEvent{
+		Time:      t,
+		Type:      rt,
+		Status:    rel.Info.Status.Code.String(),
+		Name:      rel.Name,
+		Revision:  strconv.Itoa(int(rel.Version)),
+		Namespace: rel.Namespace,
 	}, nil
 }
 
-// AnnotationFromRawRelease makes a chronologist annotation from raw helm
-// release data. This function always returns the same annotation for the
+// EventFromRawRelease assembles a chronologist release event from the raw helm
+// release data. This function always returns the same event for the
 // same release.
-func AnnotationFromRawRelease(data string) (chronologist.Annotation, error) {
+func EventFromRawRelease(data string) (chronologist.ReleaseEvent, error) {
 	rel, err := DecodeRelease(data)
 	if err != nil {
-		return chronologist.Annotation{}, errors.Wrap(err, "decode raw release data")
+		return chronologist.ReleaseEvent{}, errors.Wrap(err, "decode raw release data")
 	}
 
-	a, err := AnnotationFromRelease(rel)
-	return a, errors.Wrap(err, "create annotation from helm release")
+	r, err := EventFromRelease(rel)
+	return r, errors.Wrap(err, "create chronologist release event from helm release")
 }

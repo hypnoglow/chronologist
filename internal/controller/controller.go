@@ -25,9 +25,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
 	"go.uber.org/zap"
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -35,7 +33,6 @@ import (
 	"k8s.io/client-go/util/workqueue"
 
 	"github.com/hypnoglow/chronologist/internal/chronologist"
-	"github.com/hypnoglow/chronologist/internal/grafana"
 )
 
 const (
@@ -61,7 +58,6 @@ const (
 type Controller struct {
 	log        *zap.Logger
 	kubernetes kubernetes.Interface
-	grafana    grafana.Annotator
 
 	queue    workqueue.RateLimitingInterface
 	informer cache.SharedInformer
@@ -69,6 +65,8 @@ type Controller struct {
 	maxAge time.Duration
 
 	backend releaseBackend
+
+	chronicle chronologist.Chronicle
 }
 
 // Options represent controller options.
@@ -163,78 +161,12 @@ func (c *Controller) processNextItem() bool {
 	return true
 }
 
-func (c *Controller) syncGrafanaReleaseAnnotation(ann chronologist.Annotation, name, revision string, log *zap.Logger) error {
-	q := grafana.GetAnnotationsParams{}
-	q.ByRelease(name, revision)
-
-	grafanaAnns, err := c.grafana.GetAnnotations(context.TODO(), q)
-	if err != nil {
-		return errors.Wrap(err, "get annotations from grafana")
-	}
-
-	if len(grafanaAnns) > 1 {
-		log.Sugar().Warnf("Release revision has %d annotations. Sync logic for this case is not implemented", len(grafanaAnns))
-		// TODO: implement sync logic.
-		return nil
-	}
-
-	if len(grafanaAnns) < 1 {
-		log.Debug("Release revision has no annotations, creating a new one")
-		err = c.grafana.SaveAnnotation(
-			context.TODO(),
-			grafana.AnnotationFromChronologistAnnotation(ann),
-		)
-		return errors.Wrap(err, "create annotation in grafana")
-	}
-
-	// Here we got len(grafanaAnns) == 1, which means we need to sync changed
-	// configmap/secret with corresponding annotation if needed.
-
-	log.Debug("Release revision has one annotation in Grafana, comparing them")
-
-	ca, err := grafanaAnns[0].ToChronologistAnnotation()
-	if err != nil {
-		return errors.Wrap(err, "unmarshal grafana annotation")
-	}
-
-	ann.GrafanaID = ca.GrafanaID
-	diffs := ann.Differences(ca)
-	if len(diffs) == 0 {
-		log.Debug("Annotations are equal, sync is not required")
-		return nil
-	}
-
-	log.Sugar().Debugf("Found differences: %v. Syncing annotation in grafana", diffs)
-	err = c.grafana.SaveAnnotation(
-		context.TODO(),
-		grafana.AnnotationFromChronologistAnnotation(ann),
-	)
-	if err != nil {
-		return errors.Wrap(err, "create annotation")
-	}
-	return nil
+func (c *Controller) syncReleaseEvent(ctx context.Context, re chronologist.ReleaseEvent, name, revision string) error {
+	return c.chronicle.Register(ctx, re)
 }
 
-func (c *Controller) deleteGrafanaReleaseAnnotation(name, revision string, log *zap.Logger) error {
-	q := grafana.GetAnnotationsParams{}
-	q.ByRelease(name, revision)
-
-	log.Sugar().Debugf("Release revision has been deleted, deleting grafana annotation")
-
-	aa, err := c.grafana.GetAnnotations(context.TODO(), q)
-	if err != nil {
-		return err
-	}
-
-	var errs []error
-	for _, a := range aa {
-		log.Sugar().Debugf("Delete grafana annotation id=%d", a.ID)
-		if err := c.grafana.DeleteAnnotation(context.TODO(), a.ID); err != nil {
-			errs = append(errs, err)
-		}
-	}
-
-	return utilerrors.NewAggregate(errs)
+func (c *Controller) deleteReleaseEvent(ctx context.Context, name, revision string) error {
+	return c.chronicle.Unregister(ctx, name, revision)
 }
 
 // keyToRelease returns release name and revision from configmap (or secret) name.
@@ -255,12 +187,12 @@ func (c *Controller) keyToRelease(key string) (name, revision string, err error)
 }
 
 // New returns a new controller.
-func New(log *zap.Logger, kubernetes kubernetes.Interface, grafana grafana.Annotator, opts Options) (*Controller, error) {
+func New(log *zap.Logger, kubernetes kubernetes.Interface, chronicle chronologist.Chronicle, opts Options) (*Controller, error) {
 	c := &Controller{
 		log:        log,
 		kubernetes: kubernetes,
-		grafana:    grafana,
 		maxAge:     opts.MaxAge,
+		chronicle:  chronicle,
 	}
 
 	if opts.WatchConfigMaps && opts.WatchSecrets {

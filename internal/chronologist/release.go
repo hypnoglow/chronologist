@@ -19,12 +19,13 @@ limitations under the License.
 package chronologist
 
 import (
+	"context"
 	"time"
 
 	"github.com/go-test/deep"
 )
 
-// ReleaseType is a type of release.
+//ReleaseType is a type of release.
 type ReleaseType string
 
 // String returns release type in a string form.
@@ -38,22 +39,31 @@ const (
 
 	// ReleaseTypeRollback is a rollback release type.
 	ReleaseTypeRollback ReleaseType = "rollback"
+
+	// ReleaseTypeUnknown is an unknown release type.
+	ReleaseTypeUnknown ReleaseType = ""
 )
 
-// Annotation represent an abstract annotation that Chronologist manages.
-// Annotation can be serialized or unserialized using different sources.
+// ReleaseEvent represents a helm release event in neutral format.
+// Release can be serialized or deserialized using different sources.
 // See "grafana" and "helm" packages for such functional.
-type Annotation struct {
-	GrafanaID        int
-	Time             time.Time
-	ReleaseType      ReleaseType
-	ReleaseStatus    string
-	ReleaseName      string
-	ReleaseRevision  string
-	ReleaseNamespace string
+type ReleaseEvent struct {
+	Time      time.Time
+	Type      ReleaseType
+	Status    string
+	Name      string
+	Revision  string
+	Namespace string
 }
 
-// Differences compares annotations and returns differences.
-func (a Annotation) Differences(ann Annotation) []string {
-	return deep.Equal(a, ann)
+// Differences compares release events and returns differences.
+func (r ReleaseEvent) Differences(r2 ReleaseEvent) []string {
+	return deep.Equal(r, r2)
+}
+
+// Chronicle can register and unregister events.
+// Basically, it represents a sink for the release events.
+type Chronicle interface {
+	Register(ctx context.Context, re ReleaseEvent) error
+	Unregister(ctx context.Context, name, revision string) error
 }

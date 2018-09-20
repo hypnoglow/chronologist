@@ -12,9 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+all: dep test build
+
+.PHONY: dep
+dep:
+	dep ensure -v -vendor-only
+
 .PHONY: build
 build:
 	go build -o ${CURDIR}/bin/chronologist ./cmd/chronologist
+
+.PHONY: test
+test:
+	go test -v $(shell go list ./... | grep -v "e2e")
 
 .PHONY: test-e2e
 test-e2e:
