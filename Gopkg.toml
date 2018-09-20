@@ -35,6 +35,10 @@
   name = "k8s.io/helm"
   version = "~2.8"
 
+[[constraint]]
+  name = "github.com/prometheus/client_golang"
+  revision = "e637cec7d9c8990247098639ebc6d43dd34ddd49"
+
 [prune]
   go-tests = true
   unused-packages = true
