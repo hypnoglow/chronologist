@@ -27,6 +27,7 @@ import (
 	"github.com/hypnoglow/chronologist/internal/zaplog"
 )
 
+// NewChronicle returns a new Grafana chronicle.
 func NewChronicle(grafana Annotator, log *zap.Logger) *Chronicle {
 	return &Chronicle{
 		grafana: grafana,
@@ -34,19 +35,21 @@ func NewChronicle(grafana Annotator, log *zap.Logger) *Chronicle {
 	}
 }
 
-// TODO: comments
+// A Chronicle registers release events in Grafana.
 type Chronicle struct {
 	grafana Annotator
 	log     *zap.Logger
 }
 
+// Register adds the release event to the chronicle, syncing it with a corresponding
+// Grafana annotation.
 func (c *Chronicle) Register(ctx context.Context, re chronologist.ReleaseEvent) error {
 	log := zaplog.Grasp(ctx, c.log)
 
 	q := GetAnnotationsParams{}
 	q.ByRelease(re.Name, re.Revision)
 
-	grafanaAnns, err := c.grafana.GetAnnotations(context.TODO(), q)
+	grafanaAnns, err := c.grafana.GetAnnotations(ctx, q)
 	if err != nil {
 		return errors.Wrap(err, "get annotations from grafana")
 	}
@@ -60,7 +63,7 @@ func (c *Chronicle) Register(ctx context.Context, re chronologist.ReleaseEvent) 
 	if len(grafanaAnns) < 1 {
 		log.Debug("No annotations found for the release event. Creating a new one")
 		err = c.grafana.SaveAnnotation(
-			context.TODO(),
+			ctx,
 			AnnotationFromEvent(0, re),
 		)
 		return errors.Wrap(err, "create annotation in grafana")
@@ -82,7 +85,7 @@ func (c *Chronicle) Register(ctx context.Context, re chronologist.ReleaseEvent) 
 	log.Sugar().Debugf("Found differences: %v. Syncing annotation in Grafana", diffs)
 
 	err = c.grafana.SaveAnnotation(
-		context.TODO(),
+		ctx,
 		AnnotationFromEvent(grafanaAnns[0].ID, re),
 	)
 	if err != nil {
@@ -91,6 +94,8 @@ func (c *Chronicle) Register(ctx context.Context, re chronologist.ReleaseEvent) 
 	return nil
 }
 
+// Unregister removes the release event from the chronicle, removing a
+// corresponding Grafana annotation.
 func (c *Chronicle) Unregister(ctx context.Context, name, revision string) error {
 	log := zaplog.Grasp(ctx, c.log)
 
@@ -99,7 +104,7 @@ func (c *Chronicle) Unregister(ctx context.Context, name, revision string) error
 
 	log.Sugar().Debugf("Deleting Grafana annotations related to the release event")
 
-	aa, err := c.grafana.GetAnnotations(context.TODO(), q)
+	aa, err := c.grafana.GetAnnotations(ctx, q)
 	if err != nil {
 		return err
 	}
@@ -107,7 +112,7 @@ func (c *Chronicle) Unregister(ctx context.Context, name, revision string) error
 	var errs []error
 	for _, a := range aa {
 		log.Sugar().Debugf("Delete Grafana annotation id=%d", a.ID)
-		if err := c.grafana.DeleteAnnotation(context.TODO(), a.ID); err != nil {
+		if err := c.grafana.DeleteAnnotation(ctx, a.ID); err != nil {
 			errs = append(errs, err)
 		}
 	}

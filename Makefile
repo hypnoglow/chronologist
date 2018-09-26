@@ -33,3 +33,7 @@ test-e2e:
 .PHONY: image
 image:
 	docker image build -t hypnoglow/chronologist:latest .
+
+. PHONY: mockgen
+mockgen:
+	minimock -i github.com/hypnoglow/chronologist/internal/grafana.Annotator -o ./internal/grafana/mocks -s _mock.go

@@ -138,6 +138,25 @@
   revision = "c0656edd0d9eab7c66d1eb0c568f9039345796f7"
 
 [[projects]]
+  branch = "master"
+  digest = "1:978b51b5358a813de8537985afd40ad05ef9868f14146f18f30e4cb2eceb8a37"
+  name = "github.com/gojuno/generator"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "487ec858da35ab9b34dea233bb8d91c048645add"
+
+[[projects]]
+  branch = "master"
+  digest = "1:5a36f52508bf5ed5254106643dc779053fb3e78f71eefce8175215d5aa9a0902"
+  name = "github.com/gojuno/minimock"
+  packages = [
+    ".",
+    "cmd/minimock",
+  ]
+  pruneopts = "UT"
+  revision = "79a6ca66b6ac53161df2dfca6cb70e51fd4be8fc"
+
+[[projects]]
   digest = "1:2edd2416f89b4e841df0e4a78802ce14d2bc7ad79eba1a45986e39f0f8cb7d87"
   name = "github.com/golang/glog"
   packages = ["."]
@@ -418,6 +437,21 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:42d800e308d6fcd0e22a9567266f7c1f79066c9a3831d28afbd07778b0954d37"
+  name = "golang.org/x/tools"
+  packages = [
+    "go/ast/astutil",
+    "go/buildutil",
+    "go/internal/cgo",
+    "go/loader",
+    "imports",
+    "internal/fastwalk",
+  ]
+  pruneopts = "UT"
+  revision = "c756801b0141e5d8f5f43e38d9962117e034e565"
+
+[[projects]]
+  branch = "master"
   digest = "1:3c24554c312721e98fa6b76403e7100cf974eb46b1255ea7fc6471db9a9ce498"
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
@@ -653,6 +687,8 @@
   analyzer-version = 1
   input-imports = [
     "github.com/go-test/deep",
+    "github.com/gojuno/minimock",
+    "github.com/gojuno/minimock/cmd/minimock",
     "github.com/golang/protobuf/proto",
     "github.com/golang/protobuf/ptypes",
     "github.com/joho/godotenv",
