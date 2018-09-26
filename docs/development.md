@@ -15,21 +15,18 @@ Deploy Grafana `v4.6.3`:
 
     # Note the last chart version for `4.6.3`  is `0.8.4`
     # See: https://github.com/kubernetes/charts/tree/53d1cd54f0b710c402dfd25278a66735eba969f1/stable/grafana
-    
+
     helm install stable/grafana --version 0.8.4 \
         --wait --debug \
         --name grafana \
         --namespace ${NAMESPACE} \
-        --set server.persistentVolume.enabled=false
-
-Enable port-forwarding for Grafana pod:
-
-     export POD_NAME=$(kubectl get pods --namespace ${NAMESPACE} -l "app=grafana-grafana,component=grafana" -o jsonpath="{.items[0].metadata.name}")
-     kubectl --namespace ${NAMESPACE} port-forward $POD_NAME 3000
+        --set server.persistentVolume.enabled=false \
+        --set server.ingress.enabled=true \
+        --set server.ingress.hosts.0=$(minikube ip).xip.io
 
 Export Grafana variables, getting password for user `admin`:
 
-    export GRAFANA_ADDR="http://localhost:3000"
+    export GRAFANA_ADDR="$(minikube ip).xip.io"
     export GRAFANA_PASSWORD=$(kubectl get secret --namespace ${NAMESPACE} grafana -o jsonpath="{.data.grafana-admin-password}" | base64 --decode ; echo)
 
 Create API key:
@@ -97,7 +94,7 @@ Deploy Chronologist:
     helm upgrade chronologist ./deployment/chart/chronologist \
         --install --namespace ${NAMESPACE} --wait --debug \
         --set image.tag="dirty" \
-        --set grafana.addr="http://grafana" \
+        --set grafana.addr="${GRAFANA_ADDR}" \
         --set grafana.apiKey=${GRAFANA_API_KEY}
 
 Chronologist is ready!
