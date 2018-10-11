@@ -46,7 +46,9 @@ func main() {
 
 	grafanaClient := grafana.NewClient(conf.GrafanaAddr, conf.GrafanaAPIKey)
 
-	c, err := controller.New(log, kubeClient, grafanaClient, controller.Options{
+	chronicle := grafana.NewChronicle(grafanaClient, log)
+
+	c, err := controller.New(log, kubeClient, chronicle, controller.Options{
 		MaxAge:          conf.ReleaseRevisionMaxAge,
 		WatchConfigMaps: conf.WatchConfigMaps,
 		WatchSecrets:    conf.WatchSecrets,

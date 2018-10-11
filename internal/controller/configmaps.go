@@ -17,6 +17,7 @@ limitations under the License.
 package controller
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -31,6 +32,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/hypnoglow/chronologist/internal/helm"
+	"github.com/hypnoglow/chronologist/internal/zaplog"
 )
 
 func (c *Controller) setupConfigmapsInformer(kube kubernetes.Interface) {
@@ -141,7 +143,8 @@ func (c *Controller) syncConfigMap(key string) error {
 		return err
 	}
 
-	log = log.With(
+	ctx := zaplog.WithFields(
+		context.Background(),
 		zap.String("release", name),
 		zap.String("revision", revision),
 	)
@@ -151,15 +154,15 @@ func (c *Controller) syncConfigMap(key string) error {
 		return errors.Wrap(err, "get from store by key")
 	}
 	if !exists {
-		return c.deleteGrafanaReleaseAnnotation(name, revision, log)
+		return c.deleteReleaseEvent(ctx, name, revision)
 	}
 
 	cm := item.(*core_v1.ConfigMap)
 
-	relAnn, err := helm.AnnotationFromRawRelease(cm.Data["release"])
+	re, err := helm.EventFromRawRelease(cm.Data["release"])
 	if err != nil {
-		return errors.Wrap(err, "create annotation from raw helm release data")
+		return errors.Wrap(err, "create a release event from raw helm release data")
 	}
 
-	return c.syncGrafanaReleaseAnnotation(relAnn, name, revision, log)
+	return c.syncReleaseEvent(ctx, re, name, revision)
 }

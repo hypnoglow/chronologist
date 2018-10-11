@@ -33,57 +33,56 @@ type Annotation struct {
 	Text       string   `json:"text"`
 }
 
-// ToChronologistAnnotation converts grafana annotation to chronologist
-// annotation. This function always returns the same chronologist annotation
-// for the same grafana annotation.
-func (ga Annotation) ToChronologistAnnotation() (chronologist.Annotation, error) {
-	ca := chronologist.Annotation{
-		GrafanaID: ga.ID,
-		Time:      time.Unix(ga.UNIXMillis/1000, 0).UTC(),
+// ToReleaseEvent converts the grafana annotation to a chronologist release event.
+// This function always returns the same chronologist release event for the same
+// grafana annotation.
+func (a Annotation) ToReleaseEvent() chronologist.ReleaseEvent {
+	re := chronologist.ReleaseEvent{
+		Time: time.Unix(a.UNIXMillis/1000, 0).UTC(),
 	}
 
-	for _, tag := range ga.Tags {
+	for _, tag := range a.Tags {
 		switch {
 		case strings.HasPrefix(tag, "release_type="):
 			rt := strings.TrimPrefix(tag, "release_type=")
 			switch rt {
 			case chronologist.ReleaseTypeRollout.String():
-				ca.ReleaseType = chronologist.ReleaseTypeRollout
+				re.Type = chronologist.ReleaseTypeRollout
 			case chronologist.ReleaseTypeRollback.String():
-				ca.ReleaseType = chronologist.ReleaseTypeRollback
+				re.Type = chronologist.ReleaseTypeRollback
 			default:
-				return ca, fmt.Errorf("unknown release type: %v", rt)
+				re.Type = chronologist.ReleaseTypeUnknown
 			}
 		case strings.HasPrefix(tag, "release_status="):
-			ca.ReleaseStatus = strings.TrimPrefix(tag, "release_status=")
+			re.Status = strings.TrimPrefix(tag, "release_status=")
 		case strings.HasPrefix(tag, "release_name="):
-			ca.ReleaseName = strings.TrimPrefix(tag, "release_name=")
+			re.Name = strings.TrimPrefix(tag, "release_name=")
 		case strings.HasPrefix(tag, "release_revision="):
-			ca.ReleaseRevision = strings.TrimPrefix(tag, "release_revision=")
+			re.Revision = strings.TrimPrefix(tag, "release_revision=")
 		case strings.HasPrefix(tag, "release_namespace="):
-			ca.ReleaseNamespace = strings.TrimPrefix(tag, "release_namespace=")
+			re.Namespace = strings.TrimPrefix(tag, "release_namespace=")
 		}
 	}
 
-	return ca, nil
+	return re
 }
 
-// AnnotationFromChronologistAnnotation makes a grafana annotation from
-// chronologist annotation.
-func AnnotationFromChronologistAnnotation(ca chronologist.Annotation) Annotation {
+// AnnotationFromEvent assembles a grafana annotation from the chronologist
+// release event.
+func AnnotationFromEvent(id int, re chronologist.ReleaseEvent) Annotation {
 	return Annotation{
-		ID:         ca.GrafanaID,
-		UNIXMillis: ca.Time.Unix() * 1000,
+		ID:         id,
+		UNIXMillis: re.Time.Unix() * 1000,
 		Tags: []string{
 			"event=release",
 			"heritage=chronologist",
-			"release_type=" + ca.ReleaseType.String(),
-			"release_status=" + ca.ReleaseStatus,
-			"release_name=" + ca.ReleaseName,
-			"release_revision=" + ca.ReleaseRevision,
-			"release_namespace=" + ca.ReleaseNamespace,
+			"release_type=" + re.Type.String(),
+			"release_status=" + re.Status,
+			"release_name=" + re.Name,
+			"release_revision=" + re.Revision,
+			"release_namespace=" + re.Namespace,
 		},
-		Text: fmt.Sprintf("%s release %s", strings.Title(ca.ReleaseType.String()), ca.ReleaseName),
+		Text: fmt.Sprintf("%s release %s", strings.Title(re.Type.String()), re.Name),
 	}
 }
 
