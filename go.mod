@@ -1,0 +1,55 @@
+module github.com/hypnoglow/chronologist
+
+require (
+	github.com/BurntSushi/toml v0.3.0
+	github.com/Masterminds/semver v1.4.2
+	github.com/PuerkitoBio/purell v1.1.0
+	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578
+	github.com/davecgh/go-spew v0.0.0-20170626231645-782f4967f2dc
+	github.com/docker/spdystream v0.0.0-20170912183627-bc6354cbbc29
+	github.com/emicklei/go-restful v2.7.0+incompatible
+	github.com/ghodss/yaml v0.0.0-20150909031657-73d445a93680
+	github.com/go-openapi/jsonpointer v0.0.0-20180322222829-3a0015ad55fa
+	github.com/go-openapi/jsonreference v0.0.0-20180322222742-3fb327e6747d
+	github.com/go-openapi/spec v0.0.0-20180415031709-bcff419492ee
+	github.com/go-openapi/swag v0.0.0-20180405201759-811b1089cde9
+	github.com/go-test/deep v1.0.1
+	github.com/gobwas/glob v0.2.3
+	github.com/gogo/protobuf v0.0.0-20170330071051-c0656edd0d9e
+	github.com/golang/glog v0.0.0-20141105023935-44145f04b68c
+	github.com/golang/protobuf v1.1.0
+	github.com/google/btree v0.0.0-20180124185431-e89373fe6b4a
+	github.com/google/gofuzz v0.0.0-20161122191042-44d81051d367
+	github.com/googleapis/gnostic v0.0.0-20170729233727-0c5108395e2d
+	github.com/gregjones/httpcache v0.0.0-20180305231024-9cad4c3443a7
+	github.com/hashicorp/golang-lru v0.0.0-20160207214719-a0d98a5f2880
+	github.com/howeyc/gopass v0.0.0-20170109162249-bf9dde6d0d2c
+	github.com/imdario/mergo v0.0.0-20141206190957-6633656539c1
+	github.com/joho/godotenv v1.2.0
+	github.com/json-iterator/go v0.0.0-20180424004623-2ddf6d758266
+	github.com/juju/ratelimit v1.0.1
+	github.com/kelseyhightower/envconfig v1.3.0
+	github.com/mailru/easyjson v0.0.0-20180323154445-8b799c424f57
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
+	github.com/modern-go/reflect2 v0.0.0-20180228065516-1df9eeb2bb81
+	github.com/petar/GoLLRB v0.0.0-20130427215148-53be0d36a84c
+	github.com/peterbourgon/diskv v2.0.1+incompatible
+	github.com/pkg/errors v0.8.0
+	github.com/spf13/pflag v0.0.0-20171106142849-4c012f6dcd95
+	go.uber.org/atomic v1.2.0
+	go.uber.org/multierr v1.1.0
+	go.uber.org/zap v1.8.0
+	golang.org/x/crypto v0.0.0-20170825220121-81e90905daef
+	golang.org/x/net v0.0.0-20170809000501-1c05540f6879
+	golang.org/x/sys v0.0.0-20180525142821-c11f84a56e43
+	golang.org/x/text v0.3.0
+	google.golang.org/genproto v0.0.0-20180601223552-81158efcc9f2
+	google.golang.org/grpc v1.12.0
+	gopkg.in/inf.v0 v0.9.0
+	gopkg.in/yaml.v2 v2.2.1
+	k8s.io/api v0.0.0-20180510142701-9273ee02527c
+	k8s.io/apimachinery v0.0.0-20180510142256-21efb2924c7c
+	k8s.io/client-go v6.0.0+incompatible
+	k8s.io/helm v2.8.2+incompatible
+	k8s.io/kube-openapi v0.0.0-20180529211733-98b5c3f6a62e
+)
